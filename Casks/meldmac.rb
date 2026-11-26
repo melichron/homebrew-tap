@@ -8,7 +8,7 @@ cask "meldmac" do
   homepage "https://github.com/melichron/meld-macos-silicon-native"
 
   depends_on arch: :arm64
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "MeldMac.app"
 end
