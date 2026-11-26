@@ -1,0 +1,45 @@
+name: Update MeldMac cask
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-meldmac.yml
+      - scripts/sync-meldmac.py
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-meldmac-cask
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+      - name: Check the latest stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          args=()
+          if [[ "$EVENT" != schedule ]]; then args+=(--verify-current); fi
+          python3 scripts/sync-meldmac.py "${args[@]}"
+          ruby -c Casks/meldmac.rb
+      - name: Publish cask changes
+        run: |
+          if git diff --quiet -- Casks/meldmac.rb; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- Casks/meldmac.rb
+          git diff --cached --check
+          git commit -m 'Update MeldMac cask to the latest stable release'
+          git push origin HEAD:main
